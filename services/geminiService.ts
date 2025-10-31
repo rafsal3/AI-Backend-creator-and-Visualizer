@@ -1,15 +1,14 @@
-
-
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { Model, Api, ApiCollection, Controller, Route, Middleware } from '../types';
 
-if (!process.env.API_KEY) {
-    // In a real app, you'd want to handle this more gracefully.
-    // For this project, we assume the key is set in the environment.
-    console.warn("API_KEY environment variable not set. AI features will not work.");
-}
+const getAiClient = () => {
+    // Re-initialize on each call to ensure the latest API key from the environment is used.
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY environment variable not set. Please select an API key.");
+    }
+    return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+};
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 const parseJsonResponse = <T,>(text: string): T | null => {
     let jsonStr = text.trim();
@@ -27,6 +26,7 @@ const parseJsonResponse = <T,>(text: string): T | null => {
 };
 
 export const generateModels = async (prompt: string): Promise<Model[] | null> => {
+    const ai = getAiClient();
     const fullPrompt = `
 You are an expert backend development assistant specializing in Node.js and Mongoose.
 Based on the user's request, generate one or more database model definitions.
@@ -51,22 +51,48 @@ Respond ONLY with a valid JSON array of objects in the following format. Do not 
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // FIX: Using gemini-2.5-pro for code generation as it's a complex task.
+            model: "gemini-2.5-pro",
             contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
+                // FIX: Added responseSchema for more reliable JSON output.
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            fields: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        name: { type: Type.STRING },
+                                        type: { type: Type.STRING },
+                                    },
+                                    required: ['name', 'type'],
+                                },
+                            },
+                            code: { type: Type.STRING },
+                        },
+                        required: ['name', 'fields', 'code'],
+                    }
+                }
             },
         });
         const modelsData = parseJsonResponse<Omit<Model, 'id' | 'history'>[]>(response.text);
         return modelsData ? modelsData.map(m => ({ ...m, id: `model-${Date.now()}-${Math.random()}`, history: [] })) : null;
     } catch (error) {
         console.error("Error generating models:", error);
-        return null;
+        // The UI should catch this and potentially re-prompt for API key if it's an auth error.
+        throw error;
     }
 };
 
 
 export const generateApis = async (prompt: string, existingModels: Model[]): Promise<ApiCollection[] | null> => {
+    const ai = getAiClient();
     const modelContext = existingModels.map(m => ({ name: m.name, fields: m.fields }));
     const fullPrompt = `
 You are an expert backend development assistant for Node.js/Express.
@@ -103,10 +129,29 @@ Respond ONLY with a valid JSON array of objects in the following format.
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // FIX: Using gemini-2.5-pro for code generation as it's a complex task.
+            model: "gemini-2.5-pro",
             contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
+                // FIX: Added responseSchema for more reliable JSON output.
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            collectionName: { type: Type.STRING },
+                            name: { type: Type.STRING },
+                            endpoint: { type: Type.STRING },
+                            method: { type: Type.STRING },
+                            description: { type: Type.STRING },
+                            requestBodyExample: { type: Type.STRING },
+                            responseBodyExample: { type: Type.STRING },
+                            code: { type: Type.STRING },
+                        },
+                        required: ['collectionName', 'name', 'endpoint', 'method', 'description', 'responseBodyExample', 'code'],
+                    }
+                }
             },
         });
 
@@ -135,7 +180,7 @@ Respond ONLY with a valid JSON array of objects in the following format.
         return Array.from(collectionsMap.values());
     } catch (error) {
         console.error("Error generating APIs:", error);
-        return null;
+        throw error;
     }
 };
 
@@ -302,6 +347,7 @@ module.exports = router;`;
 
 
 export const generateMiddlewares = async (models: Model[], apis: Api[]): Promise<Middleware[] | null> => {
+    const ai = getAiClient();
     const fullPrompt = `
 You are a Node.js/Express expert. Your task is to generate common middleware files.
 The application context includes these Models:
@@ -333,16 +379,29 @@ Respond ONLY with a valid JSON array of objects in the following format. Do not 
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // FIX: Using gemini-2.5-pro for code generation as it's a complex task.
+            model: "gemini-2.5-pro",
             contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
+                // FIX: Added responseSchema for more reliable JSON output.
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            code: { type: Type.STRING },
+                        },
+                        required: ['name', 'code'],
+                    }
+                }
             },
         });
         const middlewareData = parseJsonResponse<Omit<Middleware, 'id' | 'history'>[]>(response.text);
         return middlewareData ? middlewareData.map(m => ({ ...m, id: `mid-${Date.now()}-${Math.random()}`, history: [] })) : null;
     } catch (error) {
         console.error("Error generating middlewares:", error);
-        return null;
+        throw error;
     }
 };

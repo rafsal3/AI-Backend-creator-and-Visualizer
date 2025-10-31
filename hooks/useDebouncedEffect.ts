@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 type EffectCallback = () => void;
 
@@ -24,5 +24,6 @@ export function useDebouncedEffect(
         clearTimeout(handler);
       };
     }
+  // FIX: Added React import to resolve React.DependencyList type.
   }, [...deps, delay]);
 }
