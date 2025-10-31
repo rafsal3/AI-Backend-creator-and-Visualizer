@@ -2,11 +2,12 @@ import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { Model, Api, ApiCollection, Controller, Route, Middleware } from '../types';
 
 const getAiClient = () => {
-    // Re-initialize on each call to ensure the latest API key from the environment is used.
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set. Please select an API key.");
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        throw new Error("Gemini API key not found in local storage. Please set it up.");
     }
-    return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    // Re-initialize on each call to ensure the latest API key from storage is used.
+    return new GoogleGenAI({ apiKey });
 };
 
 

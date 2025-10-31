@@ -6,42 +6,13 @@ import ApiKeySetupPage from './components/ApiKeySetupPage';
 import * as projectService from './services/projectService';
 import { ICONS } from './constants';
 
-// This is to satisfy TypeScript since this is a global provided by the environment
-// FIX: Defined an interface for aistudio to resolve declaration conflicts.
-interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-}
-declare global {
-    interface Window {
-        aistudio: AIStudio;
-    }
-}
-
-
 const AppManager: React.FC = () => {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isApiKeyReady, setIsApiKeyReady] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkApiKey = async () => {
-        if (window.aistudio) {
-            try {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
-                setIsApiKeyReady(hasKey);
-            } catch (error) {
-                console.error("Error checking for API key:", error);
-                // Fallback for environments where aistudio is available but fails
-                setIsApiKeyReady(false);
-            }
-        } else {
-            // Fallback for environments where aistudio is not available,
-            // assuming key is in process.env from a different source.
-            console.warn("window.aistudio not found. Assuming API key is configured elsewhere.");
-            setIsApiKeyReady(true); 
-        }
-    };
-    checkApiKey();
+    const apiKey = localStorage.getItem('geminiApiKey');
+    setIsApiKeyReady(!!apiKey);
   }, []);
 
   // On initial load, try to set the last active project
@@ -68,6 +39,14 @@ const AppManager: React.FC = () => {
     setIsApiKeyReady(true);
   };
   
+  const handleResetApiKey = () => {
+    localStorage.removeItem('geminiApiKey');
+    setIsApiKeyReady(false);
+    // Also reset project selection to provide a clean flow after re-entering key
+    setActiveProjectId(null);
+    localStorage.removeItem('lastActiveProjectId');
+  };
+  
   if (isApiKeyReady === null) {
       return (
         <div className="bg-gray-900 h-screen flex justify-center items-center text-white">
@@ -84,7 +63,7 @@ const AppManager: React.FC = () => {
     return <ProjectSelectionPage onSelectProject={handleSelectProject} />;
   }
 
-  return <App projectId={activeProjectId} onExit={handleExitProject} />;
+  return <App projectId={activeProjectId} onExit={handleExitProject} onResetApiKey={handleResetApiKey} />;
 };
 
 

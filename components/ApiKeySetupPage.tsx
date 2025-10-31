@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ICONS } from '../constants';
 
 interface ApiKeySetupPageProps {
@@ -6,17 +6,13 @@ interface ApiKeySetupPageProps {
 }
 
 const ApiKeySetupPage: React.FC<ApiKeySetupPageProps> = ({ onApiKeySelected }) => {
+  const [apiKey, setApiKey] = useState('');
 
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-      try {
-        await window.aistudio.openSelectKey();
-        // As per guidelines, assume success after triggering the dialog.
-        onApiKeySelected();
-      } catch (error) {
-        console.error("Error opening API key selection:", error);
-        // You might want to show an error message to the user here.
-      }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiKey.trim()) {
+      localStorage.setItem('geminiApiKey', apiKey.trim());
+      onApiKeySelected();
     }
   };
 
@@ -32,24 +28,34 @@ const ApiKeySetupPage: React.FC<ApiKeySetupPageProps> = ({ onApiKeySelected }) =
           Welcome to AI Backend Architect
         </h1>
         <p className="text-lg text-gray-300 mb-8 max-w-xl mx-auto">
-          This tool leverages the Google Gemini API to help you generate backend code. To get started, you'll need to select your own Gemini API key.
+          To get started, please enter your Google Gemini API key. Your key will be stored locally in your browser and will not be shared.
         </p>
-        <div className="flex flex-col items-center space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col items-center space-y-4">
+           <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter your Gemini API Key"
+            className="w-full max-w-lg bg-gray-900 border border-gray-600 rounded-md px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center"
+            aria-label="Gemini API Key"
+            autoFocus
+          />
           <button
-            onClick={handleSelectKey}
-            className="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-transform transform hover:scale-105"
+            type="submit"
+            disabled={!apiKey.trim()}
+            className="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            Select Your API Key
+            Save &amp; Continue
           </button>
           <a
-            href="https://ai.google.dev/gemini-api/docs/billing"
+            href="https://ai.google.dev/gemini-api/docs/api-key"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-gray-400 hover:text-indigo-400 underline"
+            className="text-sm text-gray-400 hover:text-indigo-400 underline pt-2"
           >
-            Learn more about API keys and billing
+            How to get an API key
           </a>
-        </div>
+        </form>
       </div>
     </div>
   );

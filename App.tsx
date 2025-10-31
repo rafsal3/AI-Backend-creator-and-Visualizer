@@ -66,9 +66,10 @@ const smartUpdate = <T extends { id: string; name: string; code: string; history
 interface AppProps {
   projectId: string;
   onExit: () => void;
+  onResetApiKey: () => void;
 }
 
-function App({ projectId, onExit }: AppProps) {
+function App({ projectId, onExit, onResetApiKey }: AppProps) {
   // Project-level state
   const [projectName, setProjectName] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
@@ -559,6 +560,18 @@ function App({ projectId, onExit }: AppProps) {
                 {availableWindowsToAdd.length > 0 ? availableWindowsToAdd.map(w => (
                   <button key={w} onClick={() => toggleWindow(w)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-600">{w}</button>
                 )) : <p className="px-4 py-2 text-sm text-gray-400">All windows open</p>}
+              </div>
+            )}
+          </div>
+          <div className="relative dropdown-container">
+            <button onClick={() => toggleDropdown('settings')} className="p-2 bg-gray-700 rounded-md hover:bg-gray-600" title="Settings">
+              {ICONS.SETTINGS}
+            </button>
+            {openDropdown === 'settings' && (
+              <div className="absolute top-full right-0 mt-2 w-56 bg-gray-700 rounded-md shadow-lg py-1 z-40">
+                <button onClick={onResetApiKey} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-600">
+                  Change API Key
+                </button>
               </div>
             )}
           </div>
