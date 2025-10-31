@@ -1,0 +1,6 @@
+{
+  "name": "AI Backend Architect - with visualizer - deploy",
+  "description": "An AI-powered tool to generate backend code for models, APIs, controllers, routes, and middleware for Node.js applications.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
